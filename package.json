@@ -1,0 +1,8 @@
+{
+  "name": "s3-server",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.13.3",
+    "serve-static": "^1.10.0"
+  }
+}
