@@ -15,6 +15,8 @@ app.use(serveStatic('public', {
 
 function setHeaders(res, path) {
   console.log("serving", path)
+  // TODO if path matches a fingerprint, then send far future expires
+  // TODO also use as etag?
   if (Path.extname(path) === '') {
     res.setHeader('Content-Type', 'text/html')
   }

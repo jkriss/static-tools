@@ -1,10 +1,6 @@
+var async = require('async');
 var prettyUrls = require('./pretty-urls');
+var fingerprinter = require('./fingerprinter');
 var gzip = require('./gzip');
 
-prettyUrls(function(err, cb) {
-  if (err) {
-    console.error(err);
-  } else {
-    gzip();  
-  }
-});
+async.series([fingerprinter, prettyUrls, gzip]);
