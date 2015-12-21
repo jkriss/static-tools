@@ -20,6 +20,8 @@ var rewriteHtmlLinks = function(path) {
     // only rewrite internal links
     if (!href.match(/https?:\/\//)) {
       var newHref = href.replace(/\.html$/,'');
+      if (href.match(/index\.html$/)) newHref = href.replace(/index\.html$/,'');
+      if (newHref === '') newHref = '/';
       // console.log("new href:", newHref);
       a.attr('href', newHref);
     }
