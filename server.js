@@ -7,18 +7,19 @@ var Path = require('path');
 var port = 3000;
 
 app.use(serveStatic('public', {
-  index : 'index', // since we're stripping .html
-  setHeaders: setHeaders,
-  etag : false,
-  lastModified : false
+  setHeaders: setHeaders
 }))
 
 function setHeaders(res, path) {
   console.log("serving", path)
-  // TODO if path matches a fingerprint, then send far future expires
-  // TODO also use as etag?
   if (Path.extname(path) === '') {
     res.setHeader('Content-Type', 'text/html')
+  }
+  // if it's fingerprinted, use that as the etag
+  if (Path.basename(path).match(/[0-9a-f]{32}-/)) {
+    var hash = Path.basename(path).split('-')[0];
+    res.setHeader('Etag', '"'+hash+'"');
+    res.setHeader('Cache-Control', 'public, max-age=2592000'); // 1 month
   }
   res.setHeader('Content-Encoding', 'gzip')
 }

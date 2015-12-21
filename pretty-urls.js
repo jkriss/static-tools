@@ -3,6 +3,7 @@ var cheerio = require('cheerio');
 var glob = require("glob")
 var fs = require('fs');
 var del = require('del');
+var path = require('path');
 
 var rewriteHtmlLinks = function(path) {
   var contents = fs.readFileSync(path, 'utf-8');
@@ -36,11 +37,11 @@ var processPublicHtmlFiles = function(cb) {
       for (var i in files) {
         var file = files[i];
         var newContent = rewriteHtmlLinks(files[i]);
-        // console.log(newContent)
-        fs.writeFileSync(file.replace(/\.html$/, ''), newContent, 'utf-8');
+        var newPath = path.basename(file) === 'index.html' ? file : file.replace(/\.html$/, '')
+        fs.writeFileSync(newPath, newContent, 'utf-8');
       }
       // remove old .html files
-      del.sync('public/**/*.html');
+      del.sync(['public/**/*.html', '!public/**/index.html']);
       cb(null);
     }
   })

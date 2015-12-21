@@ -23,11 +23,13 @@ var rewriteLinks = function(path) {
     var urlAttr = this.name === 'link' ? 'href' : 'src';
     console.log("looking for attribute", urlAttr, "for", this.name)
     var url = tag.attr(urlAttr);
-    console.log("url was:", url);
-    var newUrl = mapping[url];
-    // only rewrite internal links
-    if (!url.match(/https?:\/\//)) {
-      tag.attr(urlAttr, newUrl);
+    if (url) {
+      console.log("url was:", url);
+      var newUrl = mapping[url];
+      // only rewrite internal links
+      if (!url.match(/https?:\/\//)) {
+        tag.attr(urlAttr, newUrl);
+      }      
     }
   })
 
