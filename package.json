@@ -2,6 +2,8 @@
   "name": "static-tools",
   "version": "1.0.0",
   "author": "Jesse Kriss <jesse@jklabs.net>",
+  "license": "MIT",
+  "repository": "jkriss/static-tools",
   "bin": {
     "static-tools": "bin/run.js",
     "static-tools-upload": "bin/upload.js"
@@ -13,6 +15,7 @@
     "del": "^2.2.0",
     "express": "^4.13.3",
     "glob": "^6.0.1",
+    "is-gzip-file": "^1.0.0",
     "mime": "^1.3.4",
     "minimist": "^1.2.0",
     "mv": "^2.1.1",
