@@ -3,4 +3,7 @@ var prettyUrls = require('./pretty-urls');
 var fingerprinter = require('./fingerprinter');
 var gzip = require('./gzip');
 
-async.series([fingerprinter, prettyUrls, gzip]);
+module.exports = function() {
+  // TODO respect different public folder
+  async.series([fingerprinter, prettyUrls, gzip]);
+}

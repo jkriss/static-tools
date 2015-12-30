@@ -21,15 +21,15 @@ var rewriteLinks = function(path) {
   links.each(function() {
     var tag = $(this);
     var urlAttr = this.name === 'link' ? 'href' : 'src';
-    console.log("looking for attribute", urlAttr, "for", this.name)
+    // console.log("looking for attribute", urlAttr, "for", this.name)
     var url = tag.attr(urlAttr);
     if (url) {
-      console.log("url was:", url);
+      // console.log("url was:", url);
       var newUrl = mapping[url];
       // only rewrite internal links
       if (!url.match(/https?:\/\//)) {
         tag.attr(urlAttr, newUrl);
-      }      
+      }
     }
   })
 
@@ -43,17 +43,20 @@ var generateFingerprints = function() {
     } else {
       for (var i in files) {
         var file = files[i];
-        var fingerprint = crypto.createHmac('md5', KEY).update(fs.readFileSync(file)).digest('hex')
-        var newFilename = file.replace(path.basename(file), fingerprint+'-'+path.basename(file));
-        // TODO this needs to be a relative path
-        mapping[file.replace('public/','')] = newFilename.replace('public/','');
-        // console.log(file, newFilename);
-        // this is async
-        mv(file, newFilename, {}, function(err) {
-          if (err) console.error(err);
-        });
+        // don't double fingerprint
+        if (!path.basename(file).match(/[0-9a-f]{32}-/)) {
+          var fingerprint = crypto.createHmac('md5', KEY).update(fs.readFileSync(file)).digest('hex')
+          var newFilename = file.replace(path.basename(file), fingerprint+'-'+path.basename(file));
+          // TODO this needs to be a relative path
+          mapping[file.replace('public/','')] = newFilename.replace('public/','');
+          // console.log(file, newFilename);
+          // this is async
+          mv(file, newFilename, {}, function(err) {
+            if (err) console.error(err);
+          });
+        }
       }
-      console.log("mappings:", mapping);
+      // console.log("mappings:", mapping);
     }
   })
 }
@@ -69,7 +72,7 @@ module.exports = function(cb) {
     } else {
       for (var i in files) {
         var file = files[i];
-        console.log(file)
+        // console.log(file)
         var newContent = rewriteLinks(files[i]);
         // console.log(newContent)
         fs.writeFileSync(file, newContent, 'utf-8');
