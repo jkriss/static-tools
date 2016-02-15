@@ -12,10 +12,10 @@ module.exports = function() {
       for (i in files) {
         var file = files[i];
         // if it's already a gzip file then skip
-        if (!isGzip(file) && !mime.lookup(file).match('image')) {
+        if (!isGzip(file)) {
           // console.log("gzipping", file);
-          var contents = fs.readFileSync(file, 'utf-8');
-          fs.writeFileSync(file, zlib.gzipSync(contents, { level : 9 }), 'utf-8');
+          var contents = fs.readFileSync(file);
+          fs.writeFileSync(file, zlib.gzipSync(contents, { level : 9 }));
         }
       }
     }
