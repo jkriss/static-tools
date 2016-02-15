@@ -6,7 +6,8 @@
   "repository": "jkriss/static-tools",
   "bin": {
     "static-tools": "bin/run.js",
-    "static-tools-upload": "bin/upload.js"
+    "static-tools-upload": "bin/upload.js",
+    "static-tools-cache-blaster": "bin/cache-blaster.js"
   },
   "dependencies": {
     "async": "^1.5.0",

@@ -4,6 +4,7 @@ var s3 = new AWS.S3({apiVersion: '2006-03-01'});
 var path = require('path');
 var fs = require('fs');
 var mime = require('mime');
+var isGzip = require('is-gzip-file');
 
 module.exports = function(config) {
 
@@ -20,9 +21,9 @@ module.exports = function(config) {
         console.log("relative path:", relativePath);
         var params = {
           Bucket : bucket,
-          Key : relativePath,
-          ContentEncoding : 'gzip'
+          Key : relativePath
         }
+        if (isGzip(file)) params.ContentEncoding = 'gzip';
         if (path.basename(relativePath).match(/[0-9a-f]{32}-/)) {
           var hash = path.basename(relativePath).split('-')[0];
           params.CacheControl = 'public, max-age=2592000',

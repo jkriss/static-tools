@@ -1,7 +1,16 @@
+#! /usr/bin/env node
 var AWS = require('aws-sdk');
 var cloudfront = new AWS.CloudFront({apiVersion: '2015-09-17'});
 
-var distributionId = 'E3KERAIBR2J6DM';
+var distributionId = process.env.DISTRIBUTION_ID
+
+if (!distributionId) {
+  var args = process.argv.slice(2)
+  distributionId = args[0];  
+}
+
+if (!distributionId) throw new Error("Must specific distribution id with the DISTRIBUTION_ID env variable")
+// var distributionId = 'EVYCVG8SOJPID';
 
 var params = {
   DistributionId: distributionId,

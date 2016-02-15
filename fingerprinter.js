@@ -12,7 +12,7 @@ var rewriteLinks = function(path) {
   var contents = fs.readFileSync(path, 'utf-8');
 
   var $ = cheerio.load(contents, {
-    normalizeWhitespace: true
+    normalizeWhitespace: false
   });
 
   // handle link and script tags
