@@ -35,6 +35,9 @@ module.exports = function(config) {
           params.ContentType = 'text/html'
         } else {
           params.ContentType = mime.lookup(relativePath);
+          // TODO make this an option
+          // force html if unknown
+          if (params.ContentType === 'application/octet-stream') params.ContentType = 'text/html'
         }
         console.log(params);
         params.Body = fs.readFileSync(file);
