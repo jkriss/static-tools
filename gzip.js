@@ -12,7 +12,7 @@ module.exports = function() {
       for (i in files) {
         var file = files[i];
         // if it's already a gzip file then skip
-        if (!isGzip(file)) {
+        if (fs.statSync(file).isFile() && !isGzip(file)) {
           // console.log("gzipping", file);
           var contents = fs.readFileSync(file);
           fs.writeFileSync(file, zlib.gzipSync(contents, { level : 9 }));
