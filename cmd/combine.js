@@ -9,6 +9,7 @@ var path = require('path')
 var mkdirp = require('mkdirp')
 var crypto = require('crypto')
 var KEY = 'static-fingerprinter'
+var request = require('sync-request');
 
 var concatStream = concat(transform)
 process.stdin.setEncoding('utf8')
@@ -32,8 +33,12 @@ function combine(tags) {
   var content = ""
   sources.forEach(function(source) {
     // relative links only, for now
-    if (source && !source.match(/https?:\/\//)) {
-      content += fs.readFileSync(base+source, 'utf-8')
+    if (source) {
+      if (!source.match(/https?:\/\//)) {
+        content += fs.readFileSync(base+source, 'utf-8')
+      } else {
+        content += request('GET', source).getBody()
+      }
     }
   })
   return content
