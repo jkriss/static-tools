@@ -77,25 +77,23 @@ function findGroups($, tag) {
   return groups
 }
 
+function tranformType($, selector, extension, tagBuilder) {
+  var groups = findGroups($, selector)
+  groups.forEach(function(els) {
+    var combined = combine(els)
+    var newSrc = write(combined, extension)
+    var newTag = tagBuilder(newSrc)
+    els.eq(0).replaceWith(newTag)
+    els.remove()
+  })
+}
+
 function transform(string) {
   // combine all head tags, then all body tags
   var $ = cheerio.load(string)
 
-  var groups = findGroups($, 'script[src]')
-  groups.forEach(function(els) {
-    var combinedJS = combine(els)
-    var newSrc = write(combinedJS, 'js')
-    els.eq(0).replaceWith(`<script src="${newSrc}">`)
-    els.remove()
-  })
-
-  groups = findGroups($, 'link[rel=stylesheet]')
-  groups.forEach(function(els) {
-    var combined = combine(els)
-    var newSrc = write(combined, 'css')
-    els.eq(0).replaceWith(`<link rel="stylesheet" href="${newSrc}">`)
-    els.remove()
-  })
+  tranformType($, 'script[src]', 'js', newSrc => `<script src="${newSrc}">`)
+  tranformType($, 'link[rel=stylesheet]', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`)
 
   process.stdout.write($.html())
 }
