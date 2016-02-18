@@ -24,7 +24,8 @@ mkdirp.sync(path.join(outputDir, extrasPath))
 
 function combine(tags) {
   var sources = []
-  tags.each((i, el) => sources.push(el.attribs.src || el.attribs.href))
+  // tags.each((i,el) => console.error('el:', el.attribs))
+  tags.each((i,el) => sources.push(el.attribs.src || el.attribs.href))
   console.error('sources', sources)
   var content = ""
   sources.forEach(function(source) {
@@ -44,21 +45,57 @@ function write(content, extension) {
   return src
 }
 
+function findGroups($, tag) {
+  var groups = []
+  var els = $(tag)
+  while (els.length > 0) {
+    // console.error("-- group started --")
+    var $el = els.eq(0)
+    els = els.slice(1)
+    var group = $el
+    // console.error("current:", $el.toString())
+    // console.error("next:", $el.next().toString())
+    // FIXME not sure why we need to grab the last one here
+    while (els.length > 0 && $el.last().next().is(tag)) {
+      // console.error("  $el before", $el.toString())
+      // console.error("  next:", $el.last().next().toString())
+      // $el = $(els.shift())
+      $el = els.first()
+      // console.error("about to add", $el.toString())
+      els = els.slice(1)
+      // console.error("remaining:", els.toString())
+      // console.error("  added " + $el.toString())
+      group = group.add($el)
+      // console.error("group now", group.toString())
+      // console.error("    $el now", $el.toString())
+    }
+    groups.push(group)
+    // console.error("-- group ended --")
+    // console.error("group:", group.toString())
+    // console.error("group:", groups[groups.length-1])
+  }
+  return groups
+}
+
 function transform(string) {
   // combine all head tags, then all body tags
   var $ = cheerio.load(string)
-  ;['head', 'body'].forEach(function(el) {
-    $el = $(el)
-    // handle css
-    var combinedCSS = combine($el.find('link[rel=stylesheet]'))
-    var newSrc = write(combinedCSS, 'css')
-    $el.find('link[rel=stylesheet]').remove()
-    $el.append(`<link rel="stylesheet" href="${newSrc}">`)
-    // handle js
-    var combinedJS = combine($el.find('script[src]'))
+
+  var groups = findGroups($, 'script[src]')
+  groups.forEach(function(els) {
+    var combinedJS = combine(els)
     var newSrc = write(combinedJS, 'js')
-    $el.find('script[src]').remove()
-    $el.append(`<script src="${newSrc}">`)
+    els.eq(0).replaceWith(`<script src="${newSrc}">`)
+    els.remove()
   })
+
+  groups = findGroups($, 'link[rel=stylesheet]')
+  groups.forEach(function(els) {
+    var combined = combine(els)
+    var newSrc = write(combined, 'css')
+    els.eq(0).replaceWith(`<link rel="stylesheet" href="${newSrc}">`)
+    els.remove()
+  })
+
   process.stdout.write($.html())
 }
