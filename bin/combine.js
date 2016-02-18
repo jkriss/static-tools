@@ -122,12 +122,11 @@ function skipExternalUrls(i, el) {
 }
 
 function transform(string) {
-  // combine all head tags, then all body tags
   var $ = cheerio.load(string)
 
   var filter = skipExternal ? skipExternalUrls : null
   tranformType($, 'script', 'js', newSrc => `<script src="${newSrc}">`, filter)
-  tranformType($, 'link[rel=stylesheet]', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter)
+  tranformType($, 'link[rel=stylesheet], style', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter)
 
   process.stdout.write($.html())
 }
