@@ -1,4 +1,5 @@
 // cp -r examples/ public/ && cat examples/index.html | node cmd/combine.js --base examples/ > public/index.html
+// cp -r examples/ public/ && cat examples/index.html | node cmd/combine.js --external --base examples/ > public/index.html
 
 var argv = require('minimist')(process.argv.slice(2));
 var concat = require('concat-stream')
@@ -20,6 +21,7 @@ process.stdin.pipe(concatStream)
 var base = argv.base || `${process.cwd()}/`
 var outputDir = argv.output || base
 var extrasPath = 'static'
+var skipExternal = !argv.external
 mkdirp.sync(path.join(outputDir, extrasPath))
 
 function combine(tags) {
@@ -77,9 +79,10 @@ function findGroups($, tag) {
   return groups
 }
 
-function tranformType($, selector, extension, tagBuilder) {
+function tranformType($, selector, extension, tagBuilder, filter) {
   var groups = findGroups($, selector)
   groups.forEach(function(els) {
+    if (filter) els = els.filter(filter)
     var combined = combine(els)
     var newSrc = write(combined, extension)
     var newTag = tagBuilder(newSrc)
@@ -92,8 +95,9 @@ function transform(string) {
   // combine all head tags, then all body tags
   var $ = cheerio.load(string)
 
-  tranformType($, 'script[src]', 'js', newSrc => `<script src="${newSrc}">`)
-  tranformType($, 'link[rel=stylesheet]', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`)
+  var filter = skipExternal ? (i,el) => !($(el).attr('src')||$(el).attr('href')).match(/^https?:/) : null
+  tranformType($, 'script[src]', 'js', newSrc => `<script src="${newSrc}">`, filter)
+  tranformType($, 'link[rel=stylesheet]', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter)
 
   process.stdout.write($.html())
 }

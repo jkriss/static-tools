@@ -4,14 +4,17 @@
     <meta charset="utf-8">
     <title>test page</title>
     <script type="text/javascript" src="js/vars.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.6/zepto.min.js"></script>
     <link rel="stylesheet" href="css/a.css">
     <link rel="stylesheet" href="css/b.css">
   </head>
   <body>
+    <div id="message"></div>
     <script type="text/javascript" src="js/a.js"></script>
     <script type="text/javascript" src="js/b.js"></script>
     <script type="text/javascript">
       document.write("<p>And a final message from some inline js.</p>")
+      $('#message').html("Yep, zepto works!")
     </script>
     <script type="text/javascript" src="js/c.js"></script>
     <link rel="stylesheet" href="css/fonts.css">
