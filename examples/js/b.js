@@ -1,1 +1,1 @@
-document.write(message + " from b.js!")
+document.write("<p>" + message + " from b.js!</p>")

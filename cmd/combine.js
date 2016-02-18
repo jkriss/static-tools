@@ -47,9 +47,18 @@ function write(content, extension) {
 function transform(string) {
   // combine all head tags, then all body tags
   var $ = cheerio.load(string)
-  var combinedCSS = combine($('head link[rel=stylesheet]'))
-  var newSrc = write(combinedCSS, 'css')
-  $('head link[rel=stylesheet]').remove()
-  $('head').append(`<link rel="stylesheet" href="${newSrc}">`)
+  ;['head', 'body'].forEach(function(el) {
+    $el = $(el)
+    // handle css
+    var combinedCSS = combine($el.find('link[rel=stylesheet]'))
+    var newSrc = write(combinedCSS, 'css')
+    $el.find('link[rel=stylesheet]').remove()
+    $el.append(`<link rel="stylesheet" href="${newSrc}">`)
+    // handle js
+    var combinedJS = combine($el.find('script[src]'))
+    var newSrc = write(combinedJS, 'js')
+    $el.find('script[src]').remove()
+    $el.append(`<script src="${newSrc}">`)
+  })
   process.stdout.write($.html())
 }
