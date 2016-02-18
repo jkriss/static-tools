@@ -17,6 +17,7 @@ module.exports = function(config) {
     } else {
       for (var i in files) {
         var file = files[i];
+        if (!fs.statSync(file).isFile()) continue
         var relativePath = path.relative(publicPath, file);
         console.log("relative path:", relativePath);
         var params = {

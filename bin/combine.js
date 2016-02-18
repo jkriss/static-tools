@@ -11,20 +11,60 @@ var mkdirp = require('mkdirp')
 var crypto = require('crypto')
 var KEY = 'static-fingerprinter'
 var request = require('sync-request');
-
-var concatStream = concat(transform)
-process.stdin.setEncoding('utf8')
-process.stdin.on('error', function(err){
-  console.error("whoops!", err)
-  process.exit(1)
-})
-process.stdin.pipe(concatStream)
+var glob = require("glob")
 
 var base = argv.base || `${process.cwd()}/`
+var skipInlineJs = argv['skip-inline-js']
 var outputDir = argv.output || base
 var extrasPath = 'static'
 var skipExternal = !argv.external
 mkdirp.sync(path.join(outputDir, extrasPath))
+var inputFiles = argv._[0]
+
+var cache = {}
+function get(url) {
+  if (cache[url]) {
+    var result = cache[url]
+    if (result.err) throw result.err
+    return result.body
+  } else {
+    try {
+      var body = request('GET', url).getBody()
+      cache[url] = { body : body }
+      return body
+    } catch (err) {
+      cache[url] = { err : err }
+      throw err
+    }
+  }
+}
+
+if (inputFiles) {
+  glob(inputFiles, function(err, files) {
+    if (err) {
+      console.err(err)
+      process.exit(1)
+    } else {
+      console.error("processing files:", files)
+      files.forEach(function(f) {
+        // TODO skip dirs
+        var transformed = transform(fs.readFileSync(f, 'utf-8'))
+        var writePath = path.join(outputDir, path.basename(f));
+        console.error("writing to", writePath)
+        fs.writeFile(writePath, transformed, 'utf-8');
+      })
+    }
+  })
+} else {
+  var concatStream = concat(transform)
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('error', function(err){
+    console.error("whoops!", err)
+    process.exit(1)
+  })
+  process.stdin.pipe(concatStream)
+}
+
 
 function combine(tags) {
   var data = []
@@ -38,16 +78,16 @@ function combine(tags) {
       data.push({ content : el.children[0].data })
     }
   })
-  console.error('sources', data)
+  console.error('sources', data.map(d => d.source ? d.source : '<inline content>'))
   var content = ""
   data.forEach(function(d) {
-    // relative links only, for now
     if (d.source) {
       if (!d.source.match(/https?:\/\//)) {
         content += fs.readFileSync(base+d.source, 'utf-8')
       } else {
         try {
-          content += request('GET', d.source).getBody()
+          // content += request('GET', d.source).getBody()
+          content += get(d.source)
         } catch (err) {
           if (err.statusCode === 404) {
             console.error(`!!! warning: could not get ${d.source}, skipping !!!`)
@@ -109,9 +149,11 @@ function tranformType($, selector, extension, tagBuilder, filter) {
   groups.forEach(function(els) {
     if (filter) els = els.filter(filter)
     var combined = combine(els)
-    var newSrc = write(combined, extension)
-    var newTag = tagBuilder(newSrc)
-    els.eq(0).replaceWith(newTag)
+    if (combined.length > 0) {
+      var newSrc = write(combined, extension)
+      var newTag = tagBuilder(newSrc)
+      els.eq(0).replaceWith(newTag)
+    }
     els.remove()
   })
 }
@@ -125,8 +167,11 @@ function transform(string) {
   var $ = cheerio.load(string)
 
   var filter = skipExternal ? skipExternalUrls : null
-  tranformType($, 'script', 'js', newSrc => `<script src="${newSrc}">`, filter)
+
+  var scriptSelector = skipInlineJs ? 'script[src]' : 'script'
+
+  tranformType($, scriptSelector, 'js', newSrc => `<script src="${newSrc}">`, filter)
   tranformType($, 'link[rel=stylesheet], style', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter)
 
-  process.stdout.write($.html())
+  return inputFiles ? $.html() : process.stdout.write($.html())
 }
