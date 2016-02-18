@@ -1,3 +1,4 @@
+#! /usr/bin/env node
 // cp -r examples/ public/ && cat examples/index.html | node cmd/combine.js --base examples/ > public/index.html
 // cp -r examples/ public/ && cat examples/index.html | node cmd/combine.js --external --base examples/ > public/index.html
 
@@ -26,19 +27,38 @@ var skipExternal = !argv.external
 mkdirp.sync(path.join(outputDir, extrasPath))
 
 function combine(tags) {
-  var sources = []
+  var data = []
   // tags.each((i,el) => console.error('el:', el.attribs))
-  tags.each((i,el) => sources.push(el.attribs.src || el.attribs.href))
-  console.error('sources', sources)
+  // tags.each((i,el) => sources.push(el.attribs.src || el.attribs.href))
+  tags.each(function(i,el) {
+    if (el.attribs.src || el.attribs.href) {
+      data.push({ source : el.attribs.src || el.attribs.href })
+    } else {
+      // console.error("el is:", el)
+      data.push({ content : el.children[0].data })
+    }
+  })
+  console.error('sources', data)
   var content = ""
-  sources.forEach(function(source) {
+  data.forEach(function(d) {
     // relative links only, for now
-    if (source) {
-      if (!source.match(/https?:\/\//)) {
-        content += fs.readFileSync(base+source, 'utf-8')
+    if (d.source) {
+      if (!d.source.match(/https?:\/\//)) {
+        content += fs.readFileSync(base+d.source, 'utf-8')
       } else {
-        content += request('GET', source).getBody()
+        try {
+          content += request('GET', d.source).getBody()
+        } catch (err) {
+          if (err.statusCode === 404) {
+            console.error(`!!! warning: could not get ${d.source}, skipping !!!`)
+          } else {
+            console.error("error:", JSON.stringify(err))
+            throw err
+          }
+        }
       }
+    } else if (d.content) {
+      content += d.content
     }
   })
   return content
@@ -96,12 +116,17 @@ function tranformType($, selector, extension, tagBuilder, filter) {
   })
 }
 
+function skipExternalUrls(i, el) {
+  var source = el.attribs.src || el.attribs.href
+  return !source || !source.match(/^https?:/)
+}
+
 function transform(string) {
   // combine all head tags, then all body tags
   var $ = cheerio.load(string)
 
-  var filter = skipExternal ? (i,el) => !($(el).attr('src')||$(el).attr('href')).match(/^https?:/) : null
-  tranformType($, 'script[src]', 'js', newSrc => `<script src="${newSrc}">`, filter)
+  var filter = skipExternal ? skipExternalUrls : null
+  tranformType($, 'script', 'js', newSrc => `<script src="${newSrc}">`, filter)
   tranformType($, 'link[rel=stylesheet]', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter)
 
   process.stdout.write($.html())
