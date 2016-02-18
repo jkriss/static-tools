@@ -12,6 +12,10 @@ var crypto = require('crypto')
 var KEY = 'static-fingerprinter'
 var request = require('sync-request');
 var glob = require("glob")
+var async = require('async')
+var UglifyJS = require('uglify-js')
+var CleanCSS = require('clean-css')
+var minifyCss = new CleanCSS()
 
 var base = argv.base || `${process.cwd()}/`
 var skipInlineJs = argv['skip-inline-js']
@@ -48,10 +52,12 @@ if (inputFiles) {
       console.error("processing files:", files)
       files.forEach(function(f) {
         // TODO skip dirs
-        var transformed = transform(fs.readFileSync(f, 'utf-8'))
-        var writePath = path.join(outputDir, path.basename(f));
-        console.error("writing to", writePath)
-        fs.writeFile(writePath, transformed, 'utf-8');
+        transform(fs.readFileSync(f, 'utf-8'), function(err, transformed) {
+          if (err) throw err
+          var writePath = path.join(outputDir, path.basename(f));
+          // console.error("writing to", writePath, transformed)
+          fs.writeFile(writePath, transformed, 'utf-8');
+        })
       })
     }
   })
@@ -66,7 +72,7 @@ if (inputFiles) {
 }
 
 
-function combine(tags) {
+function combine(tags, cb) {
   var data = []
   // tags.each((i,el) => console.error('el:', el.attribs))
   // tags.each((i,el) => sources.push(el.attribs.src || el.attribs.href))
@@ -79,15 +85,15 @@ function combine(tags) {
     }
   })
   console.error('sources', data.map(d => d.source ? d.source : '<inline content>'))
-  var content = ""
+  var content = []
   data.forEach(function(d) {
     if (d.source) {
       if (!d.source.match(/https?:\/\//)) {
-        content += fs.readFileSync(base+d.source, 'utf-8')
+        content.push(fs.readFileSync(base+d.source, 'utf-8'))
       } else {
         try {
           // content += request('GET', d.source).getBody()
-          content += get(d.source)
+          content.push(get(d.source))
         } catch (err) {
           if (err.statusCode === 404) {
             console.error(`!!! warning: could not get ${d.source}, skipping !!!`)
@@ -98,10 +104,10 @@ function combine(tags) {
         }
       }
     } else if (d.content) {
-      content += d.content
+      content.push(d.content)
     }
   })
-  return content
+  cb(null, content.join("\n"))
 }
 
 function write(content, extension) {
@@ -144,18 +150,38 @@ function findGroups($, tag) {
   return groups
 }
 
-function tranformType($, selector, extension, tagBuilder, filter) {
+var processedContent = {};
+
+function tranformType($, selector, extension, tagBuilder, filter, cb) {
   var groups = findGroups($, selector)
-  groups.forEach(function(els) {
-    if (filter) els = els.filter(filter)
-    var combined = combine(els)
-    if (combined.length > 0) {
-      var newSrc = write(combined, extension)
-      var newTag = tagBuilder(newSrc)
-      els.eq(0).replaceWith(newTag)
-    }
-    els.remove()
-  })
+  async.map(groups,
+
+    function(els, cb) {
+      if (filter) els = els.filter(filter)
+      combine(els, function(err, combined) {
+        if (err) return cb(err)
+        if (combined.length > 0) {
+          // skip if we've done this exact block already
+          var originalContent = combined
+          var newSrc = processedContent[combined]
+          if (!newSrc) {
+            if (extension === 'js') {
+              combined = UglifyJS.minify(combined, {fromString: true}).code
+            } else if (extension === 'css') {
+              combined = minifyCss.minify(combined).styles
+            }
+            newSrc = write(combined, extension)
+            processedContent[originalContent] = newSrc;
+          }
+          var newTag = tagBuilder(newSrc)
+          els.eq(0).replaceWith(newTag)
+        }
+        els.remove()
+        cb(null)
+      })
+    },
+
+  cb)
 }
 
 function skipExternalUrls(i, el) {
@@ -163,15 +189,25 @@ function skipExternalUrls(i, el) {
   return !source || !source.match(/^https?:/)
 }
 
-function transform(string) {
+function transform(string, cb) {
   var $ = cheerio.load(string)
 
   var filter = skipExternal ? skipExternalUrls : null
 
   var scriptSelector = skipInlineJs ? 'script[src]' : 'script'
 
-  tranformType($, scriptSelector, 'js', newSrc => `<script src="${newSrc}">`, filter)
-  tranformType($, 'link[rel=stylesheet], style', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter)
+  async.parallel([
 
-  return inputFiles ? $.html() : process.stdout.write($.html())
+    function(cb) {
+      tranformType($, scriptSelector, 'js', newSrc => `<script src="${newSrc}">`, filter, cb)
+    },
+
+    function(cb) {
+      tranformType($, 'link[rel=stylesheet], style', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter, cb)
+    }
+
+  ], function(err) {
+    if (err) throw err;
+    inputFiles ? cb(null, $.html()) : process.stdout.write($.html())
+  })
 }
