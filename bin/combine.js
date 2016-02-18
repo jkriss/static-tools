@@ -18,6 +18,7 @@ var CleanCSS = require('clean-css')
 var minifyCss = new CleanCSS()
 
 var base = argv.base || `${process.cwd()}/`
+var strip = argv.strip
 var skipInlineJs = argv['skip-inline-js']
 var outputDir = argv.output || base
 var extrasPath = 'static'
@@ -208,6 +209,7 @@ function transform(string, cb) {
 
   ], function(err) {
     if (err) throw err;
+    if (strip) $(strip).remove()
     inputFiles ? cb(null, $.html()) : process.stdout.write($.html())
   })
 }
