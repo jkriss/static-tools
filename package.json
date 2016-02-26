@@ -28,6 +28,7 @@
     "mv": "^2.1.1",
     "read-chunk": "^1.0.1",
     "serve-static": "^1.10.0",
-    "sync-request": "^3.0.0"
+    "sync-request": "^3.0.0",
+    "uglify-js": "^2.6.2"
   }
 }
