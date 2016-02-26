@@ -23,6 +23,7 @@ var skipInlineJs = argv['skip-inline-js']
 var outputDir = argv.output || base
 var extrasPath = 'static'
 var skipExternal = !argv.external
+var skipMinifyJs = argv['skip-minify-js']
 mkdirp.sync(path.join(outputDir, extrasPath))
 var inputFiles = argv._[0]
 
@@ -96,11 +97,9 @@ function combine(tags, cb) {
           // content += request('GET', d.source).getBody()
           content.push(get(d.source))
         } catch (err) {
-          if (err.statusCode === 404) {
+          if (err) {
             console.error(`!!! warning: could not get ${d.source}, skipping !!!`)
-          } else {
             console.error("error:", JSON.stringify(err))
-            throw err
           }
         }
       }
@@ -108,7 +107,7 @@ function combine(tags, cb) {
       content.push(d.content)
     }
   })
-  cb(null, content.join("\n"))
+  cb(null, content.join(";\n"))
 }
 
 function write(content, extension) {
@@ -166,7 +165,8 @@ function tranformType($, selector, extension, tagBuilder, filter, cb) {
           var originalContent = combined
           var newSrc = processedContent[combined]
           if (!newSrc) {
-            if (extension === 'js') {
+            if (extension === 'js' && !skipMinifyJs) {
+              // console.error("combined size is", combined.length)
               combined = UglifyJS.minify(combined, {fromString: true}).code
             } else if (extension === 'css') {
               combined = minifyCss.minify(combined).styles
@@ -193,6 +193,8 @@ function skipExternalUrls(i, el) {
 function transform(string, cb) {
   var $ = cheerio.load(string)
 
+  if (strip) $(strip).remove()
+
   var filter = skipExternal ? skipExternalUrls : null
 
   var scriptSelector = skipInlineJs ? 'script[src]' : 'script'
@@ -209,7 +211,8 @@ function transform(string, cb) {
 
   ], function(err) {
     if (err) throw err;
-    if (strip) $(strip).remove()
-    inputFiles ? cb(null, $.html()) : process.stdout.write($.html())
+    var html = $.html()
+    html = html.replace(/^\s*\n/gm,'')
+    inputFiles ? cb(null, html) : process.stdout.write(html)
   })
 }
