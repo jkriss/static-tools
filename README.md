@@ -5,3 +5,5 @@ Totally undocumented tools for making a high performance static site and uploadi
 `cat index.html | static-tools-combine --external > index.fast.html`
 
 `static-tools-strip "#bootloader, script[src^='http://assets.tumblr.com/client/prod/standalone/tumblelog/index.js']"`
+
+Add a `skip-combine` attribute to leave it alone.

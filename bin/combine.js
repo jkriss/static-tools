@@ -198,6 +198,7 @@ function transform(string, cb) {
   var filter = skipExternal ? skipExternalUrls : null
 
   var scriptSelector = skipInlineJs ? 'script[src]' : 'script'
+  scriptSelector += ':not([skip-combine])'
 
   async.parallel([
 
@@ -206,7 +207,7 @@ function transform(string, cb) {
     },
 
     function(cb) {
-      tranformType($, 'link[rel=stylesheet], style', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter, cb)
+      tranformType($, 'link[rel=stylesheet]:not([skip-combine]), style', 'css', newSrc => `<link rel="stylesheet" href="${newSrc}">`, filter, cb)
     }
 
   ], function(err) {
